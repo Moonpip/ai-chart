@@ -1,0 +1,303 @@
+{
+  "update": "2026-03-22T14:28:59.002Z",
+  "period": 20,
+  "sectors": [
+    {
+      "sector": "非鉄金属",
+      "score": 38.52,
+      "vs_nikkei": 33.54,
+      "money_flow_score": 37.79,
+      "color": "🟥",
+      "rank": "very_hot",
+      "count": 9
+    },
+    {
+      "sector": "鉱業",
+      "score": 24.43,
+      "vs_nikkei": 19.45,
+      "money_flow_score": 34.1,
+      "color": "🟥",
+      "rank": "very_hot",
+      "count": 1
+    },
+    {
+      "sector": "倉庫・運輸関連業",
+      "score": 23.59,
+      "vs_nikkei": 18.6,
+      "money_flow_score": 33.74,
+      "color": "🟥",
+      "rank": "very_hot",
+      "count": 1
+    },
+    {
+      "sector": "卸売業",
+      "score": 18.16,
+      "vs_nikkei": 13.18,
+      "money_flow_score": 20.63,
+      "color": "🟥",
+      "rank": "very_hot",
+      "count": 7
+    },
+    {
+      "sector": "不動産業",
+      "score": 16.91,
+      "vs_nikkei": 11.93,
+      "money_flow_score": 17.09,
+      "color": "🟥",
+      "rank": "very_hot",
+      "count": 4
+    },
+    {
+      "sector": "海運業",
+      "score": 15.69,
+      "vs_nikkei": 10.71,
+      "money_flow_score": 17.55,
+      "color": "🟥",
+      "rank": "very_hot",
+      "count": 3
+    },
+    {
+      "sector": "その他金融業",
+      "score": 14.07,
+      "vs_nikkei": 9.09,
+      "money_flow_score": 19.32,
+      "color": "🟧",
+      "rank": "hot",
+      "count": 4
+    },
+    {
+      "sector": "石油・石炭製品",
+      "score": 11.88,
+      "vs_nikkei": 6.9,
+      "money_flow_score": 15.61,
+      "color": "🟧",
+      "rank": "hot",
+      "count": 2
+    },
+    {
+      "sector": "機械",
+      "score": 11.83,
+      "vs_nikkei": 6.84,
+      "money_flow_score": 10.99,
+      "color": "🟧",
+      "rank": "hot",
+      "count": 16
+    },
+    {
+      "sector": "電気・ガス業",
+      "score": 10.94,
+      "vs_nikkei": 5.96,
+      "money_flow_score": 11.13,
+      "color": "🟧",
+      "rank": "hot",
+      "count": 5
+    },
+    {
+      "sector": "水産・農林業",
+      "score": 10.27,
+      "vs_nikkei": 5.29,
+      "money_flow_score": 9.2,
+      "color": "🟧",
+      "rank": "hot",
+      "count": 2
+    },
+    {
+      "sector": "繊維製品",
+      "score": 9.26,
+      "vs_nikkei": 4.28,
+      "money_flow_score": 8.47,
+      "color": "🟨",
+      "rank": "warm",
+      "count": 2
+    },
+    {
+      "sector": "建設業",
+      "score": 9.17,
+      "vs_nikkei": 4.19,
+      "money_flow_score": 8.94,
+      "color": "🟨",
+      "rank": "warm",
+      "count": 9
+    },
+    {
+      "sector": "保険業",
+      "score": 8.43,
+      "vs_nikkei": 3.45,
+      "money_flow_score": 10.89,
+      "color": "🟨",
+      "rank": "warm",
+      "count": 5
+    },
+    {
+      "sector": "化学",
+      "score": 7.87,
+      "vs_nikkei": 2.89,
+      "money_flow_score": 8.39,
+      "color": "🟨",
+      "rank": "warm",
+      "count": 18
+    },
+    {
+      "sector": "その他製品",
+      "score": 7.38,
+      "vs_nikkei": 2.4,
+      "money_flow_score": 10.9,
+      "color": "🟨",
+      "rank": "warm",
+      "count": 4
+    },
+    {
+      "sector": "電気機器",
+      "score": 6.87,
+      "vs_nikkei": 1.89,
+      "money_flow_score": 6.72,
+      "color": "🟨",
+      "rank": "warm",
+      "count": 30
+    },
+    {
+      "sector": "食料品",
+      "score": 6.04,
+      "vs_nikkei": 1.06,
+      "money_flow_score": 6.24,
+      "color": "🟨",
+      "rank": "warm",
+      "count": 9
+    },
+    {
+      "sector": "パルプ・紙",
+      "score": 4.72,
+      "vs_nikkei": -0.26,
+      "money_flow_score": 7.46,
+      "color": "⬜",
+      "rank": "neutral",
+      "count": 2
+    },
+    {
+      "sector": "小売業",
+      "score": 4.39,
+      "vs_nikkei": -0.59,
+      "money_flow_score": 4.96,
+      "color": "⬜",
+      "rank": "neutral",
+      "count": 8
+    },
+    {
+      "sector": "ゴム製品",
+      "score": 4.38,
+      "vs_nikkei": -0.6,
+      "money_flow_score": 6.56,
+      "color": "⬜",
+      "rank": "neutral",
+      "count": 2
+    },
+    {
+      "sector": "銀行業",
+      "score": 3.72,
+      "vs_nikkei": -1.27,
+      "money_flow_score": 6.81,
+      "color": "⬜",
+      "rank": "neutral",
+      "count": 12
+    },
+    {
+      "sector": "金属製品",
+      "score": 3.59,
+      "vs_nikkei": -1.4,
+      "money_flow_score": 3.4,
+      "color": "⬜",
+      "rank": "neutral",
+      "count": 2
+    },
+    {
+      "sector": "医薬品",
+      "score": 3.09,
+      "vs_nikkei": -1.9,
+      "money_flow_score": 4.35,
+      "color": "⬜",
+      "rank": "neutral",
+      "count": 9
+    },
+    {
+      "sector": "陸運業",
+      "score": 2.82,
+      "vs_nikkei": -2.16,
+      "money_flow_score": 3.14,
+      "color": "⬜",
+      "rank": "neutral",
+      "count": 9
+    },
+    {
+      "sector": "ガラス・土石製品",
+      "score": 2.12,
+      "vs_nikkei": -2.86,
+      "money_flow_score": 2.02,
+      "color": "⬜",
+      "rank": "neutral",
+      "count": 7
+    },
+    {
+      "sector": "証券、商品先物取引業",
+      "score": 1.27,
+      "vs_nikkei": -3.71,
+      "money_flow_score": 3.75,
+      "color": "⬜",
+      "rank": "neutral",
+      "count": 3
+    },
+    {
+      "sector": "輸送用機器",
+      "score": -0.72,
+      "vs_nikkei": -5.7,
+      "money_flow_score": -0.67,
+      "color": "🟩",
+      "rank": "cool",
+      "count": 12
+    },
+    {
+      "sector": "鉄鋼",
+      "score": -1.43,
+      "vs_nikkei": -6.41,
+      "money_flow_score": -2.29,
+      "color": "🟩",
+      "rank": "cool",
+      "count": 4
+    },
+    {
+      "sector": "空運業",
+      "score": -1.81,
+      "vs_nikkei": -6.79,
+      "money_flow_score": 7.89,
+      "color": "🟩",
+      "rank": "cool",
+      "count": 2
+    },
+    {
+      "sector": "精密機器",
+      "score": -1.87,
+      "vs_nikkei": -6.85,
+      "money_flow_score": 2.44,
+      "color": "🟩",
+      "rank": "cool",
+      "count": 4
+    },
+    {
+      "sector": "サービス業",
+      "score": -6.87,
+      "vs_nikkei": -11.85,
+      "money_flow_score": -6.86,
+      "color": "🟦",
+      "rank": "cold",
+      "count": 8
+    },
+    {
+      "sector": "情報・通信業",
+      "score": -9.28,
+      "vs_nikkei": -14.27,
+      "money_flow_score": -8.45,
+      "color": "🟦",
+      "rank": "cold",
+      "count": 11
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "coser-stock",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build:market": "node batch/build_market_full.js",
+    "build:market:legacy": "node batch/build_all_market_views.js"
+  }
+}

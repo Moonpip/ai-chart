@@ -1,0 +1,280 @@
+{
+  "update": "2026-03-22T14:28:59.002Z",
+  "period": 20,
+  "benchmark": {
+    "code": "1001",
+    "name": "日経平均",
+    "return": 4.98
+  },
+  "summary": {
+    "market_state": "中立",
+    "capital_focus_sector": "非鉄金属",
+    "capital_focus_score": 38.52,
+    "avg_sector_score": 7.86,
+    "rising_ratio": 51.8
+  },
+  "top_sectors": [
+    {
+      "sector": "非鉄金属",
+      "score": 38.52,
+      "vs_nikkei": 33.54,
+      "color": "🟥",
+      "rank": "very_hot",
+      "count": 9
+    },
+    {
+      "sector": "鉱業",
+      "score": 24.43,
+      "vs_nikkei": 19.45,
+      "color": "🟥",
+      "rank": "very_hot",
+      "count": 1
+    },
+    {
+      "sector": "倉庫・運輸関連業",
+      "score": 23.59,
+      "vs_nikkei": 18.6,
+      "color": "🟥",
+      "rank": "very_hot",
+      "count": 1
+    },
+    {
+      "sector": "卸売業",
+      "score": 18.16,
+      "vs_nikkei": 13.18,
+      "color": "🟥",
+      "rank": "very_hot",
+      "count": 7
+    },
+    {
+      "sector": "不動産業",
+      "score": 16.91,
+      "vs_nikkei": 11.93,
+      "color": "🟥",
+      "rank": "very_hot",
+      "count": 4
+    },
+    {
+      "sector": "海運業",
+      "score": 15.69,
+      "vs_nikkei": 10.71,
+      "color": "🟥",
+      "rank": "very_hot",
+      "count": 3
+    },
+    {
+      "sector": "その他金融業",
+      "score": 14.07,
+      "vs_nikkei": 9.09,
+      "color": "🟧",
+      "rank": "hot",
+      "count": 4
+    },
+    {
+      "sector": "石油・石炭製品",
+      "score": 11.88,
+      "vs_nikkei": 6.9,
+      "color": "🟧",
+      "rank": "hot",
+      "count": 2
+    },
+    {
+      "sector": "機械",
+      "score": 11.83,
+      "vs_nikkei": 6.84,
+      "color": "🟧",
+      "rank": "hot",
+      "count": 16
+    },
+    {
+      "sector": "電気・ガス業",
+      "score": 10.94,
+      "vs_nikkei": 5.96,
+      "color": "🟧",
+      "rank": "hot",
+      "count": 5
+    }
+  ],
+  "top_stocks": [
+    {
+      "code": "5801",
+      "name": "古河電気工業",
+      "industry": "非鉄金属",
+      "return": 117.37,
+      "relative_strength": 112.39,
+      "volume_ratio": 1.32,
+      "money_flow_score": 120.57
+    },
+    {
+      "code": "5706",
+      "name": "三井金属鉱業",
+      "industry": "非鉄金属",
+      "return": 72.62,
+      "relative_strength": 67.64,
+      "volume_ratio": 1.09,
+      "money_flow_score": 73.48
+    },
+    {
+      "code": "6703",
+      "name": "沖電気工業",
+      "industry": "電気機器",
+      "return": 54.93,
+      "relative_strength": 49.95,
+      "volume_ratio": 0.89,
+      "money_flow_score": 53.83
+    },
+    {
+      "code": "5802",
+      "name": "住友電気工業",
+      "industry": "非鉄金属",
+      "return": 46.6,
+      "relative_strength": 41.62,
+      "volume_ratio": 0.83,
+      "money_flow_score": 44.94
+    },
+    {
+      "code": "6674",
+      "name": "ＧＳユアサ",
+      "industry": "電気機器",
+      "return": 38.06,
+      "relative_strength": 33.08,
+      "volume_ratio": 0.81,
+      "money_flow_score": 36.17
+    },
+    {
+      "code": "4004",
+      "name": "レゾナックＨＤ",
+      "industry": "化学",
+      "return": 36.89,
+      "relative_strength": 31.91,
+      "volume_ratio": 1.41,
+      "money_flow_score": 40.98
+    },
+    {
+      "code": "6976",
+      "name": "太陽誘電",
+      "industry": "電気機器",
+      "return": 33.63,
+      "relative_strength": 28.65,
+      "volume_ratio": 0.65,
+      "money_flow_score": 30.17
+    },
+    {
+      "code": "5803",
+      "name": "フジクラ",
+      "industry": "非鉄金属",
+      "return": 32.53,
+      "relative_strength": 27.55,
+      "volume_ratio": 1.15,
+      "money_flow_score": 34.04
+    },
+    {
+      "code": "7762",
+      "name": "シチズン時計",
+      "industry": "精密機器",
+      "return": 29.95,
+      "relative_strength": 24.97,
+      "volume_ratio": 0.93,
+      "money_flow_score": 29.24
+    },
+    {
+      "code": "2802",
+      "name": "味の素",
+      "industry": "食料品",
+      "return": 28.47,
+      "relative_strength": 23.49,
+      "volume_ratio": 0.87,
+      "money_flow_score": 27.15
+    },
+    {
+      "code": "9412",
+      "name": "スカパーＪＳＡＴ",
+      "industry": "情報・通信業",
+      "return": 27.81,
+      "relative_strength": 22.83,
+      "volume_ratio": 0.99,
+      "money_flow_score": 27.67
+    },
+    {
+      "code": "7012",
+      "name": "川崎重工業",
+      "industry": "輸送用機器",
+      "return": 27.39,
+      "relative_strength": 22.41,
+      "volume_ratio": 0.77,
+      "money_flow_score": 25.11
+    },
+    {
+      "code": "5713",
+      "name": "住友金属鉱山",
+      "industry": "非鉄金属",
+      "return": 27.07,
+      "relative_strength": 22.08,
+      "volume_ratio": 0.84,
+      "money_flow_score": 25.51
+    },
+    {
+      "code": "5711",
+      "name": "三菱マテリアル",
+      "industry": "非鉄金属",
+      "return": 26.11,
+      "relative_strength": 21.13,
+      "volume_ratio": 0.79,
+      "money_flow_score": 23.96
+    },
+    {
+      "code": "8002",
+      "name": "丸紅",
+      "industry": "卸売業",
+      "return": 25.83,
+      "relative_strength": 20.84,
+      "volume_ratio": 1.91,
+      "money_flow_score": 34.94
+    },
+    {
+      "code": "8802",
+      "name": "三菱地所",
+      "industry": "不動産業",
+      "return": 25.57,
+      "relative_strength": 20.59,
+      "volume_ratio": 0.94,
+      "money_flow_score": 25.01
+    },
+    {
+      "code": "8058",
+      "name": "三菱商事",
+      "industry": "卸売業",
+      "return": 25.31,
+      "relative_strength": 20.33,
+      "volume_ratio": 1.01,
+      "money_flow_score": 25.4
+    },
+    {
+      "code": "6645",
+      "name": "オムロン",
+      "industry": "電気機器",
+      "return": 24.94,
+      "relative_strength": 19.96,
+      "volume_ratio": 0.82,
+      "money_flow_score": 23.13
+    },
+    {
+      "code": "8697",
+      "name": "ＪＰＸ",
+      "industry": "その他金融業",
+      "return": 24.63,
+      "relative_strength": 19.65,
+      "volume_ratio": 1.29,
+      "money_flow_score": 27.53
+    },
+    {
+      "code": "1605",
+      "name": "ＩＮＰＥＸ",
+      "industry": "鉱業",
+      "return": 24.43,
+      "relative_strength": 19.45,
+      "volume_ratio": 1.97,
+      "money_flow_score": 34.1
+    }
+  ]
+}

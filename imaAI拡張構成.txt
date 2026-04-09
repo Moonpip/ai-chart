@@ -1,0 +1,17 @@
+project
+│
+├ ima.html
+├ indicators.js
+│
+├ ai
+│   ├ ai_engine.js
+│   ├ ai_future_zone.js
+│   ├ ai_heatmap.js
+│   ├ ai_crash_detector.js
+│   ├ ai_similarity.js
+│   ├ ai_line_engine.js
+│
+└ ai_render
+    ├ ai_overlay_renderer.js
+    ├ ai_future_zone_renderer.js
+    └ ai_heatmap_renderer.js
