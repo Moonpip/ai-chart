@@ -56,5 +56,29 @@ video.addEventListener("ended", goMain);
 document.getElementById("skipBtn").onclick = goMain;
 </script>
 
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./service-worker.js").then(reg => {
+
+    // 更新検知
+    reg.onupdatefound = () => {
+      const newWorker = reg.installing;
+
+      newWorker.onstatechange = () => {
+        if (newWorker.state === "installed") {
+          if (navigator.serviceWorker.controller) {
+            // 🔥 ここが神機能
+            if (confirm("新しいバージョンがあります。更新しますか？")) {
+              location.reload();
+            }
+          }
+        }
+      };
+    };
+
+  });
+}
+</script>
+
 </body>
 </html>
