@@ -9,21 +9,39 @@
 body {
   margin: 0;
   background: #000;
+  overflow: hidden;
+}
+
+/* 🔥 スプラッシュ全体 */
+#splash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  z-index: 9999;
+  transition: opacity 0.8s ease;
 }
 
-/* 動画サイズ調整ここ */
+/* 動画 */
 #introVideo {
-  width: 260px;   /* ←ここでサイズ変える */
+  width: 260px;
   height: 260px;
   object-fit: contain;
   border-radius: 30px;
 }
 
-/* スキップボタン */
+/* フェードアウト */
+#splash.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* スキップ */
 #skipBtn {
   position: fixed;
   bottom: 40px;
@@ -33,41 +51,58 @@ body {
   border: 1px solid #555;
   padding: 10px 14px;
   border-radius: 10px;
+  z-index: 10000;
 }
 </style>
 </head>
 
 <body>
 
-<video id="introVideo" autoplay muted playsinline>
-  <source src="./intro.mp4" type="video/mp4">
-</video>
+<!-- 🔥 スプラッシュ -->
+<div id="splash">
+  <video id="introVideo" autoplay muted playsinline>
+    <source src="./intro.mp4" type="video/mp4">
+  </video>
+</div>
 
 <button id="skipBtn">スキップ</button>
 
 <script>
 const video = document.getElementById("introVideo");
+const splash = document.getElementById("splash");
 
+/* 🔥 メイン遷移（フェード付き） */
 function goMain() {
-  location.href = "./ima.html";
+  splash.classList.add("hide");
+
+  setTimeout(() => {
+    location.href = "./ima.html";
+  }, 800);
 }
 
+/* 動画終了 */
 video.addEventListener("ended", goMain);
+
+/* スキップ */
 document.getElementById("skipBtn").onclick = goMain;
+
+/* 🔥 念のため強制遷移（動画止まった時対策） */
+setTimeout(() => {
+  goMain();
+}, 4000);
 </script>
 
+<!-- 🔥 自動アップデート -->
 <script>
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js").then(reg => {
 
-    // 更新検知
     reg.onupdatefound = () => {
       const newWorker = reg.installing;
 
       newWorker.onstatechange = () => {
         if (newWorker.state === "installed") {
           if (navigator.serviceWorker.controller) {
-            // 🔥 ここが神機能
             if (confirm("新しいバージョンがあります。更新しますか？")) {
               location.reload();
             }
