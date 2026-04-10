@@ -6472,15 +6472,30 @@
         }
 
         // 起動時に保存された状態を復元
-        const savedState = loadAppState();
-        if (savedState) {
-          // 少し遅延させて、銘柄リストが準備されてから復元
-          setTimeout(() => {
-            restoreAppState(savedState);
-          }, 100);
-        } else {
-          loadLines();
-        }
+        // 起動時に保存された状態を復元
+const savedState = loadAppState();
+const firstLaunchDone = localStorage.getItem("firstLaunchDone");
+
+if (savedState) {
+  // 2回目以降は前回終了時の状態を優先
+  setTimeout(() => {
+    restoreAppState(savedState);
+  }, 100);
+} else if (!firstLaunchDone) {
+  // 初回のみデフォルト状態を適用
+  applyFirstLaunchDefaultState();
+
+  setTimeout(() => {
+    if (window.pendingStateRestore) {
+      restoreAppState(window.pendingStateRestore);
+    } else {
+      loadLines();
+    }
+  }, 100);
+} else {
+  // 初回済みだが保存状態がない場合
+  loadLines();
+}
       }
 
       /* ========= xlsx 読込 ========= */
@@ -7822,6 +7837,28 @@
 
         ctx.restore();
       }
+
+const FIRST_LAUNCH_DEFAULT_STATE = {
+  selectedStockCode: "1001",
+  zoom: 1.2,
+  targetZoom: 1.2,
+  offset: 35,
+  targetOffset: 35
+};
+
+function applyFirstLaunchDefaultState() {
+  try {
+    window.pendingStateRestore = {
+      ...FIRST_LAUNCH_DEFAULT_STATE
+    };
+    localStorage.setItem("firstLaunchDone", "1");
+  } catch (e) {
+    console.error("初回デフォルト設定エラー:", e);
+  }
+}
+
+
+
 
 
       /* ========= 状態の保存・復元 ========= */
