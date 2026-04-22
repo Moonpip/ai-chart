@@ -2958,7 +2958,7 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/ai-chart/sw.js')
+    navigator.serviceWorker.register('/ai-chart/service-worker.js')
       .then(reg => console.log('✅ SW登録成功', reg))
       .catch(err => console.error('❌ SW登録失敗', err));
   });
