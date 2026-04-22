@@ -37,7 +37,9 @@ function runSimilarityWorker(symbol, priceData) {
   }
 
   if (!similarityWorker) {
-    console.log("Worker起動");
+    if (typeof window !== "undefined" && window.__IMA_DEBUG__) {
+      console.log("Worker起動");
+    }
     try {
       similarityWorker = new Worker("ai/ai_similarity_worker.js");
     } catch (e) {
@@ -67,7 +69,9 @@ function runSimilarityWorker(symbol, priceData) {
         window.similarPatterns = [];
         if (window.AI) window.AI.similarity = [];
       }
-      console.log("Worker完了");
+      if (typeof window !== "undefined" && window.__IMA_DEBUG__) {
+        console.log("Worker完了");
+      }
       if (typeof window !== "undefined" && typeof window.draw === "function") {
         window.draw();
       }
@@ -104,7 +108,9 @@ function runSimilarityWorker(symbol, priceData) {
       window.similarPatterns = display;
       if (window.AI) window.AI.similarity = display;
     }
-    console.log("Worker完了");
+    if (typeof window !== "undefined" && window.__IMA_DEBUG__) {
+      console.log("Worker完了");
+    }
     if (typeof window !== "undefined" && typeof window.draw === "function") {
       window.draw();
     }
@@ -409,13 +415,25 @@ window.prevSimilar = function () {
 
   function normalizeSimilarityResult(list) {
     if (!Array.isArray(list)) return [];
+    var conv =
+      typeof window !== "undefined" && typeof window.convertDistanceToSimilarity === "function"
+        ? window.convertDistanceToSimilarity
+        : function (d) {
+            if (!isFinite(d)) return 0;
+            var s = 100 * Math.exp(-d);
+            if (s >= 99.9) s = 99.8;
+            return Math.max(0, Math.min(100, s));
+          };
     return list.map(function (item) {
-      var sim = item.similarity ?? 0;
+      var dateStr = item.pastDate ?? item.date ?? "";
+      var dist = typeof item.score === "number" && Number.isFinite(item.score) ? item.score : NaN;
+      var scoreConverted = conv(dist);
       return {
         index: item.index ?? 0,
-        score: 1 - sim / 100,
-        similarity: sim,
-        pastDate: item.pastDate ?? "",
+        score: scoreConverted,
+        similarity: scoreConverted,
+        pastDate: dateStr,
+        date: item.date ?? dateStr,
         future: Array.isArray(item.future) ? item.future : [],
         futureReturn: item.futureReturn ?? 0
       };
@@ -426,7 +444,9 @@ window.prevSimilar = function () {
     if (SIM_WORKER_STATE.worker) return SIM_WORKER_STATE.worker;
     try {
       SIM_WORKER_STATE.worker = new Worker("ai/ai_similarity_worker.js");
-      console.log("類似Worker起動");
+      if (typeof window !== "undefined" && window.__IMA_DEBUG__) {
+        console.log("類似Worker起動");
+      }
       return SIM_WORKER_STATE.worker;
     } catch (err) {
       console.error("類似Worker生成失敗", err);
@@ -485,7 +505,9 @@ window.prevSimilar = function () {
           }
 
           SIM_WORKER_STATE.busy = false;
-          console.log("類似Worker完了");
+          if (typeof window !== "undefined" && window.__IMA_DEBUG__) {
+            console.log("類似Worker完了");
+          }
           if (typeof window.draw === "function") window.draw();
         } catch (err) {
           SIM_WORKER_STATE.busy = false;

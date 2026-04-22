@@ -9,8 +9,6 @@
   <!-- Version: 2024-12-01-v3-FIXED -->
   <!-- 描画は完全自作Canvas。xlsx読取のみ外部ライブラリを使用 -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
-  <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#000000">
 
 
 
@@ -29,6 +27,7 @@
   <script src="ai/ai_score_engine.js"></script>
   <script src="ai_ami/ai_ami_engine.js"></script>
   <script src="ai_ami/ai_ami_renderer.js"></script>
+  <script src="ai/ai_similarity_core.js"></script>
   <script src="ai/ai_similarity_pro.js"></script>
   <script src="ai/ai_volume_wall_pro.js"></script>
   <script src="ai/ai_crash_detector_pro.js"></script>
@@ -43,7 +42,7 @@
   <script src="ai/ai_sr_break_detector.js"></script>
   <script src="ai/ai_sr_zone_renderer.js"></script>
   <script type="module" src="ai/ai_engine.js"></script>
-  <script type="module" src="ai_render/ai_overlay_renderer.js?v=5"></script>
+  <script type="module" src="ai_render/ai_overlay_renderer.js?v=9999"></script>
   <script type="module" src="ai_render/ai_analysis_panel.js"></script>
   <script src="ai_render/ai_future_panel.js"></script>
   <script src="ai/ai_reversal_core.js"></script>
@@ -62,6 +61,8 @@
   <script src="ai_sector/ai_sector_ui.js"></script>
   <script src="ai_sector/ai_sector_full.js"></script>
   <script src="ai_sector/ai_sector_front.js"></script>
+  <script src="ai_sector/sector_json_panel.js"></script>
+  <script src="js/ranking_controller_simple.js"></script>
 
   <style>
     :root {
@@ -2405,40 +2406,53 @@
         console.log("🔍 listData keys:", listData ? Object.keys(listData) : "null/undefined");
         // list.json がオブジェクト形式の場合、history プロパティから配列を取得
         const stockArray = Array.isArray(listData) ? listData : (listData.history || []);
-        console.log("🔍 stockArray type:", typeof stockArray, Array.isArray(stockArray) ? "array" : "object");
-        console.log("📦 JSONパース完了:", stockArray.length, "件");
+        if (window.__IMA_DEBUG__) {
+          console.log("🔍 stockArray type:", typeof stockArray, Array.isArray(stockArray) ? "array" : "object");
+          console.log("📦 JSONパース完了:", stockArray.length, "件");
+        }
 
         // STOCK_LIST に格納（配列形式）
         window.STOCK_LIST = stockArray;
-        console.log("✔ STOCK_LIST 設定完了:", window.STOCK_LIST.length, "銘柄");
+        if (window.__IMA_DEBUG__) {
+          console.log("✔ STOCK_LIST 設定完了:", window.STOCK_LIST.length, "銘柄");
+        }
 
         // EMBEDDED_STOCKS に変換（マップ形式）
         window.EMBEDDED_STOCKS = {};
+        window.stockNamesCache = window.stockNamesCache || {};
         let converted = 0;
         for (let i = 0; i < stockArray.length; i++) {
           const item = stockArray[i];
-          if (item && item.symbol && item.name) {
-            window.EMBEDDED_STOCKS[String(item.symbol)] = String(item.name);
+          if (!item) continue;
+          const code = String(item.code || item.symbol);
+          if (!code) continue;
+          window.stockNamesCache[code] = item.name || "";
+          if (item.name) {
+            window.EMBEDDED_STOCKS[code] = String(item.name);
             converted++;
           }
         }
 
-        console.log("✔ EMBEDDED_STOCKS 生成完了:", Object.keys(window.EMBEDDED_STOCKS).length, "銘柄 (変換数:", converted, ")");
-
-        // サンプル表示（デバッグ用）
-        const firstKey = Object.keys(window.EMBEDDED_STOCKS)[0];
-        if (firstKey) {
-          console.log("📌 サンプル:", firstKey, "→", window.EMBEDDED_STOCKS[firstKey]);
+        if (window.__IMA_DEBUG__) {
+          console.log("✔ EMBEDDED_STOCKS 生成完了:", Object.keys(window.EMBEDDED_STOCKS).length, "銘柄 (変換数:", converted, ")");
+          const firstKey = Object.keys(window.EMBEDDED_STOCKS)[0];
+          if (firstKey) {
+            console.log("📌 サンプル:", firstKey, "→", window.EMBEDDED_STOCKS[firstKey]);
+          }
         }
 
         // stockNamesCache も更新
         if (typeof stockNamesCache !== 'undefined') {
+          Object.assign(stockNamesCache, window.stockNamesCache || {});
           Object.assign(stockNamesCache, window.EMBEDDED_STOCKS);
-          console.log("✔ stockNamesCache 更新完了");
+          if (window.__IMA_DEBUG__) {
+            console.log("✔ stockNamesCache 更新完了");
+          }
         }
 
-        // 成功メッセージ
-        console.log("🎉 銘柄データの読み込みが完了しました！");
+        if (window.__IMA_DEBUG__) {
+          console.log("🎉 銘柄データの読み込みが完了しました！");
+        }
 
       } catch (e) {
         console.error("❌ list.json 読み込みエラー:", e);
@@ -2450,10 +2464,9 @@
     // loadStockList();
 
   </script>
-
-
-
-
+  <script>
+    console.log("🔥 ima(6) 読み込み確認");
+  </script>
 </head>
 
 <body>
@@ -2898,6 +2911,22 @@
     <div id="lastUpdateLabel">🕒 データ更新日: -</div>
     <div id="sidebarResizer"></div>
   </aside>
+  <div id="sectorPanel" style="
+  display:none;
+  position:absolute;
+  top:60px;
+  right:20px;
+  width:300px;
+  max-height:500px;
+  overflow:auto;
+  background:#000;
+  border:1px solid #333;
+  z-index:9999;
+  padding:10px;
+  color:#e6e6e6;
+  font-size:12px;
+"></div>
+
 
   <!-- メインコンテンツエリア -->
   <div id="mainContent">
@@ -2923,6 +2952,18 @@
 
       <div id="toolbar">
       </div>
+      <!-- PWA対応 -->
+<link rel="manifest" href="/ai-chart/manifest.json">
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/ai-chart/sw.js')
+      .then(reg => console.log('✅ SW登録成功', reg))
+      .catch(err => console.error('❌ SW登録失敗', err));
+  });
+}
+</script>
     </header>
 
     <!-- ヘッダー下情報表示エリア（横列表示） -->
@@ -2979,9 +3020,11 @@
               style="width:100%;padding:8px;background:#0f1620;color:#9fe8ff;border:1px solid #2c3b55;border-radius:4px;font-size:14px;">
           </div>
         </div>
-        <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;">
+        <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;flex-wrap:wrap;">
           <button id="periodResetBtn"
             style="padding:6px 12px;background:#2c3b55;color:#9fe8ff;border:1px solid #3b4b6a;border-radius:4px;cursor:pointer;font-size:12px;">リセット</button>
+          <button id="periodLatestBtn"
+            style="padding:6px 12px;background:#1a5c52;color:#c8fff5;border:1px solid #2a8f7a;border-radius:4px;cursor:pointer;font-size:12px;">最新日</button>
           <button id="periodApplyBtn"
             style="padding:6px 12px;background:#3b6af0;color:#ffffff;border:1px solid #4f7fff;border-radius:4px;cursor:pointer;font-size:12px;">適用</button>
           <button id="periodCloseBtn"
@@ -3416,11 +3459,13 @@
           // 初期銘柄が決まっていて、セレクトボックスが存在する場合は
           // 「ユーザーが選択した」のと同じフローを発火させる
           if (initialCode && stockSelect) {
-            console.log("✅ 初期銘柄を自動選択:", initialCode);
+            if (window.__IMA_DEBUG__) {
+              console.log("✅ 初期銘柄を自動選択:", initialCode);
+            }
             stockSelect.value = initialCode;
             // change イベントで final_json 読み込み → Yahoo 統合 → scrollToLatest() まで実行される
             stockSelect.dispatchEvent(new Event('change'));
-          } else {
+          } else if (window.__IMA_DEBUG__) {
             console.log("✅ 銘柄リスト読み込み完了。銘柄を選択してください。");
           }
         } catch (e) {
@@ -6197,14 +6242,18 @@
         const stockSelect = document.getElementById('stockSelect');
         if (!stockSelect) return;
 
-        console.log('📥 loadEmbeddedStocks: 開始');
+        if (window.__IMA_DEBUG__) {
+          console.log('📥 loadEmbeddedStocks: 開始');
+        }
 
         // 最初の起動時はローディングを表示
         showLoading('銘柄データを読み込み中...');
 
         // EMBEDDED_STOCKS が定義されているか確認
         if (typeof window.EMBEDDED_STOCKS !== 'undefined' && Object.keys(window.EMBEDDED_STOCKS).length > 0) {
-          console.log('✅ EMBEDDED_STOCKS 利用可能:', Object.keys(window.EMBEDDED_STOCKS).length, '銘柄');
+          if (window.__IMA_DEBUG__) {
+            console.log('✅ EMBEDDED_STOCKS 利用可能:', Object.keys(window.EMBEDDED_STOCKS).length, '銘柄');
+          }
           const stockCodes = Object.keys(window.EMBEDDED_STOCKS).sort();
 
           // セレクトボックスのオプションを更新する関数
@@ -6252,6 +6301,10 @@
               return;
             }
             currentSymbol = code;
+
+            if (!window.__rankingOpenAnchorDate) {
+              window.__ima_uncappedDaily = null;
+            }
 
             // 🔥 選択された銘柄を localStorage に保存
             try {
@@ -6325,6 +6378,26 @@
                 updateChartTimeframeButtons();
               }
 
+              // ランキングからの��柄選択時: 履歴終端をランキング基準日までに制限してから描画
+              if (window.__rankingOpenAnchorDate) {
+                const cap = typeof normalizeDateString === "function"
+                  ? normalizeDateString(window.__rankingOpenAnchorDate)
+                  : "";
+                if (cap && cap.length >= 8) {
+                  window.__ima_uncappedDaily = originalData.slice();
+                  const applyRankingCap = (arr) => {
+                    if (!Array.isArray(arr) || !arr.length) return arr;
+                    const t = arr.filter((d) => {
+                      const ds = normalizeDateString(d.date);
+                      return ds && ds.length >= 8 && ds <= cap;
+                    });
+                    return t.length ? t : arr;
+                  };
+                  originalData = applyRankingCap(originalData);
+                  filteredDailyData = applyRankingCap(filteredDailyData);
+                }
+              }
+
               applyTimeframe({ resetView: true });
 
               // 銘柄変更時のみ類似チャートを Web Worker で計算（UIフリーズ防止）
@@ -6350,8 +6423,8 @@
                 }
               }
 
-              // 🔥 保留されていた日付ジャンプを実行
-              if (window.__pendingJumpDate) {
+              // 🔥 保留されていた日付ジャンプ（ランキングからの銘柄選択は Yahoo 後に __rankingOpenAnchorDate で処理）
+              if (!window.__rankingOpenAnchorDate && window.__pendingJumpDate) {
                 console.log("⏳ 保留 jumpToDate を実行:", window.__pendingJumpDate);
                 setTimeout(() => {
                   if (typeof window.jumpToDate === 'function') {
@@ -6376,7 +6449,9 @@
                   code: code,
                   name: stockName
                 }, '*');
-                console.log("📤 親ウィンドウに銘柄情報を送信:", code, stockName);
+                if (window.__IMA_DEBUG__) {
+                  console.log("📤 親ウィンドウに銘柄情報を送信:", code, stockName);
+                }
               } catch (err) {
                 console.warn("postMessage エラー:", err);
               }
@@ -6438,13 +6513,26 @@
               try {
                 const yahooCandles = await fetchLatestYahoo(code);
                 if (Array.isArray(yahooCandles) && yahooCandles.length) {
-                  const merged = mergeCandles(originalData, yahooCandles);
+                  let merged = mergeCandles(originalData, yahooCandles);
+                  if (window.__rankingOpenAnchorDate && typeof capCandlesAtRankingAnchor === "function") {
+                    merged = capCandlesAtRankingAnchor(merged, window.__rankingOpenAnchorDate);
+                  }
                   updateChartWithYahoo(code, merged);
                 } else {
                   console.warn("📌 Yahoo 取得できなかったのでローカルデータ継続:", code);
                 }
               } catch (err) {
                 console.warn("Yahoo 最新データ統合エラー(stockSelect change):", err);
+              }
+
+              if (window.__rankingOpenAnchorDate) {
+                const anchor = window.__rankingOpenAnchorDate;
+                window.__rankingOpenAnchorDate = null;
+                setTimeout(() => {
+                  if (typeof window.jumpToDate === "function") {
+                    window.jumpToDate(anchor);
+                  }
+                }, 50);
               }
 
               // データ読み込み完了時にローディングを非表示
@@ -6472,30 +6560,15 @@
         }
 
         // 起動時に保存された状態を復元
-        // 起動時に保存された状態を復元
-const savedState = loadAppState();
-const firstLaunchDone = localStorage.getItem("firstLaunchDone");
-
-if (savedState) {
-  // 2回目以降は前回終了時の状態を優先
-  setTimeout(() => {
-    restoreAppState(savedState);
-  }, 100);
-} else if (!firstLaunchDone) {
-  // 初回のみデフォルト状態を適用
-  applyFirstLaunchDefaultState();
-
-  setTimeout(() => {
-    if (window.pendingStateRestore) {
-      restoreAppState(window.pendingStateRestore);
-    } else {
-      loadLines();
-    }
-  }, 100);
-} else {
-  // 初回済みだが保存状態がない場合
-  loadLines();
-}
+        const savedState = loadAppState();
+        if (savedState) {
+          // 少し遅延させて、銘柄リストが準備されてから復元
+          setTimeout(() => {
+            restoreAppState(savedState);
+          }, 100);
+        } else {
+          loadLines();
+        }
       }
 
       /* ========= xlsx 読込 ========= */
@@ -6645,6 +6718,7 @@ if (savedState) {
         const periodEndDate = document.getElementById('periodEndDate');
         const periodApplyBtn = document.getElementById('periodApplyBtn');
         const periodResetBtn = document.getElementById('periodResetBtn');
+        const periodLatestBtn = document.getElementById('periodLatestBtn');
         const periodCloseBtn = document.getElementById('periodCloseBtn');
 
         if (!periodDisplay || !periodModal) return;
@@ -6657,6 +6731,48 @@ if (savedState) {
         // モーダルを閉じる関数
         function closePeriodModal() {
           periodModal.style.display = 'none';
+        }
+
+        /** セクター/ランキング基準日で cap したとき保存した履歴でフル復元（Yahoo マージ込み） */
+        async function reloadFullDailyAfterRankingCap(options) {
+          const o = options || {};
+          const code =
+            (typeof currentSymbol !== "undefined" && currentSymbol) ||
+            (typeof data !== "undefined" && data.length && data[0] && data[0].symbol) ||
+            "";
+          const uncapped = window.__ima_uncappedDaily;
+          if (
+            !code ||
+            !Array.isArray(uncapped) ||
+            !uncapped.length ||
+            typeof updateChartWithYahoo !== "function"
+          ) {
+            return false;
+          }
+          try {
+            if (o.showLoading !== false && typeof showLoading === "function") {
+              showLoading(o.loadingText || "最新のチャートデータに更新中...");
+            }
+            periodFilterStart = null;
+            periodFilterEnd = null;
+            let merged = uncapped.slice();
+            if (typeof fetchLatestYahoo === "function") {
+              const yahooCandles = await fetchLatestYahoo(code);
+              if (Array.isArray(yahooCandles) && yahooCandles.length && typeof mergeCandles === "function") {
+                merged = mergeCandles(merged, yahooCandles);
+              }
+            }
+            updateChartWithYahoo(code, merged);
+            window.__ima_uncappedDaily = null;
+            return true;
+          } catch (err) {
+            console.warn("全履歴復元に失敗しました", err);
+            return false;
+          } finally {
+            if (o.showLoading !== false && typeof hideLoading === "function") {
+              hideLoading();
+            }
+          }
         }
 
         // 適用ボタン
@@ -6698,17 +6814,69 @@ if (savedState) {
               periodFilterEnd = end;
               applyTimeframe({ resetView: true });
             }
+            if (typeof window.refreshRankingPanelBodyIfNeeded === 'function') {
+              const rp = document.getElementById('rankingPanel');
+              if (rp && getComputedStyle(rp).display !== 'none') {
+                void window.refreshRankingPanelBodyIfNeeded(true);
+              }
+            }
             closePeriodModal();
           });
         }
 
-        // リセットボタン
+        // リセットボタン（ランキング cap 中ならフル履歴を復元してから期間フィルタ解除）
         if (periodResetBtn) {
-          periodResetBtn.addEventListener('click', () => {
-            filteredDailyData = originalData.slice();
-            periodFilterStart = null;
-            periodFilterEnd = null;
-            applyTimeframe({ resetView: true });
+          periodResetBtn.addEventListener("click", async () => {
+            disableFuturePadding();
+            window.__pendingGuide = null;
+            window.__patternGuideData = null;
+            window.__rankingOpenAnchorDate = null;
+            const ok = await reloadFullDailyAfterRankingCap({
+              loadingText: "表示をリセットしています...",
+              showLoading: true
+            });
+            if (!ok) {
+              filteredDailyData = originalData.slice();
+              periodFilterStart = null;
+              periodFilterEnd = null;
+              applyTimeframe({ resetView: true });
+            }
+            if (typeof window.refreshRankingPanelBodyIfNeeded === "function") {
+              const rp = document.getElementById("rankingPanel");
+              if (rp && getComputedStyle(rp).display !== "none") {
+                void window.refreshRankingPanelBodyIfNeeded(true);
+              }
+            }
+            closePeriodModal();
+          });
+        }
+
+        // 最新日ボタン（全期間表示、チャート右端を最新足へ）
+        if (periodLatestBtn) {
+          periodLatestBtn.addEventListener("click", async () => {
+            disableFuturePadding();
+            window.__pendingGuide = null;
+            window.__patternGuideData = null;
+            window.__rankingOpenAnchorDate = null;
+            const ok = await reloadFullDailyAfterRankingCap({
+              loadingText: "最新のチャートデータに更新中...",
+              showLoading: true
+            });
+            if (!ok) {
+              filteredDailyData = originalData.slice();
+              periodFilterStart = null;
+              periodFilterEnd = null;
+              applyTimeframe({ resetView: true });
+              if (typeof window.scrollToLatest === "function") {
+                window.scrollToLatest();
+              }
+            }
+            if (typeof window.refreshRankingPanelBodyIfNeeded === "function") {
+              const rp = document.getElementById("rankingPanel");
+              if (rp && getComputedStyle(rp).display !== "none") {
+                void window.refreshRankingPanelBodyIfNeeded(true);
+              }
+            }
             closePeriodModal();
           });
         }
@@ -6742,8 +6910,10 @@ if (savedState) {
           return;
         }
 
-        const startDate = yyyymmddToLabel(data[0].date);
-        const endDate = yyyymmddToLabel(data[data.length - 1].date);
+        const visLastRaw = window.__IMA_VISIBLE_LAST_DATE_RAW;
+        const endDate = yyyymmddToLabel(
+          visLastRaw != null && visLastRaw !== '' ? visLastRaw : data[data.length - 1].date
+        );
 
         // symbolEl（1行目）を更新 - STOCK_LIST から銘柄名を取得
         const code = data[0]?.symbol || currentSymbol || '';
@@ -6840,7 +7010,7 @@ if (savedState) {
         const periodRow = document.getElementById('periodRow');
         if (periodRow) {
           const industryText = industry || '-';
-          const periodText = `${startDate} ～ ${endDate}`;
+          const periodText = endDate;
           const registeredNow = isStockRegistered(code);
           periodRow.innerHTML = `<div class="header-row"><div class="header-left"><span class="code">${code}</span><span class="name">${displayName}</span><span class="industry">${industryText}</span><span id="periodDisplay" class="period" style="cursor:pointer;text-decoration:underline;">${periodText}</span></div><div class="header-right"><button id="favBtn" type="button" title="銘柄を登録">${registeredNow ? '★' : '☆'}</button><button id="prevBtn" type="button" title="最新日から1日戻る">←</button><button id="nextBtn" type="button" title="最新日から1日進む">→</button></div></div>`;
 
@@ -7577,37 +7747,18 @@ if (savedState) {
       // ===== 予測ガイド（patternForwardGuide）の描画 =====
       // ※ draw() の外で定義（P-7 修正）
       function drawForecastCloud(ctx, guide) {
-        console.log("🎨 drawForecastCloud 呼び出し:", {
-          hasGuide: !!guide,
-          hasForecast: !!guide?.forecast,
-          hasFan: !!guide?.forecast?.fan,
-          fanLength: guide?.forecast?.fan?.length
-        });
         if (!guide || !guide.forecast || !guide.forecast.fan || guide.forecast.fan.length === 0) {
-          console.warn("drawForecastCloud: guide/forecast/fan が不足しています", guide);
           return;
         }
 
         const fan = guide.forecast.fan;
-        console.log("🎨 drawForecastCloud fan 構造:", {
-          length: fan.length,
-          first: fan[0],
-          last: fan[fan.length - 1]
-        });
         if (!fan || fan.length === 0) {
-          console.warn("drawForecastCloud: fan.length が 0 です");
           return;
         }
 
         // === ADD: 最新終値を取得（価格補正用） ===
         const lastClose = slice.length > 0 ? slice[slice.length - 1].close : null;
         if (!lastClose || !Number.isFinite(lastClose)) {
-          console.warn("drawForecastCloud: 最新終値が取得できません", { lastClose, sliceLen: slice.length });
-          // デバッグ用に一時的な矩形を描画して可視性を確認
-          ctx.save();
-          ctx.fillStyle = "rgba(0,255,0,0.3)";
-          ctx.fillRect(50, 50, 200, 100);
-          ctx.restore();
           return;
         }
 
@@ -7615,22 +7766,12 @@ if (savedState) {
         // slice.length - 1 は表示範囲内の最後のインデックス
         const lastVisibleIndex = slice.length - 1;
         if (lastVisibleIndex < 0) {
-          console.warn("drawForecastCloud: lastVisibleIndex < 0");
           return;
         }
 
         // 最後のローソクの中心X座標を計算
         // xLast = ST.padL + lastVisibleIndex * gap + gap / 2
         const xLast = ST.padL + lastVisibleIndex * gap + gap / 2;
-
-        console.log("🎨 drawForecastCloud X座標計算:", {
-          lastVisibleIndex,
-          gap,
-          xLast,
-          padL: ST.padL,
-          canvasWidth: canvas.width,
-          dynamicPadR
-        });
 
         // === ADD: 未来のX座標計算関数（表示範囲の右端基準） ===
         function xFutureFromVisible(i) {
@@ -7838,28 +7979,6 @@ if (savedState) {
         ctx.restore();
       }
 
-const FIRST_LAUNCH_DEFAULT_STATE = {
-  selectedStockCode: "1001",
-  zoom: 1.2,
-  targetZoom: 1.2,
-  offset: 35,
-  targetOffset: 35
-};
-
-function applyFirstLaunchDefaultState() {
-  try {
-    window.pendingStateRestore = {
-      ...FIRST_LAUNCH_DEFAULT_STATE
-    };
-    localStorage.setItem("firstLaunchDone", "1");
-  } catch (e) {
-    console.error("初回デフォルト設定エラー:", e);
-  }
-}
-
-
-
-
 
       /* ========= 状態の保存・復元 ========= */
       // アプリの状態を保存
@@ -8011,6 +8130,17 @@ function applyFirstLaunchDefaultState() {
 
         try {
           loadLines();
+
+          async function syncSectorAfterRestore() {
+            const currentDate =
+              typeof getCurrentDateForSector === "function"
+                ? getCurrentDateForSector()
+                : null;
+            if (!currentDate) return;
+            await loadSectorJson(currentDate);
+            renderSectorPanel();
+          }
+
           // 画面設定を復元
           if (savedState.bgColor) {
             document.documentElement.style.setProperty('--bg', savedState.bgColor);
@@ -8517,10 +8647,12 @@ function applyFirstLaunchDefaultState() {
               };
 
               triggerIndicatorRecalc();
+              await syncSectorAfterRestore();
               return true;
             }
           }
 
+          await syncSectorAfterRestore();
           triggerIndicatorRecalc();
           return false;
         } catch (e) {
@@ -11994,7 +12126,445 @@ function applyFirstLaunchDefaultState() {
         }
       }
 
+      function formatDate(d) {
+        if (d == null || d === "") return "";
+        const raw = String(d).trim();
+        const digits = raw.replace(/\D/g, "");
+        if (digits.length === 8 && /^\d{8}$/.test(digits)) {
+          return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+        }
+        const date = new Date(d);
+        if (Number.isNaN(date.getTime())) return "";
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      }
+
+      /** #sectorPanel: タイトル行を長押しでドラッグ */
+      function setupSimpleSectorPanelDrag(panel, dragHandle) {
+        if (!panel || !dragHandle || panel.__simpleSectorDragBound) return;
+        panel.__simpleSectorDragBound = true;
+        var LONG_MS = 450;
+        var dragTimer = null;
+        var dragging = false;
+        var startX = 0, startY = 0, offX = 0, offY = 0;
+        function onMove(e) {
+          if (!dragging) return;
+          e.preventDefault();
+          var cx = e.clientX, cy = e.clientY;
+          var left = Math.max(0, Math.min((window.innerWidth || 800) - panel.offsetWidth, cx - offX));
+          var top = Math.max(0, Math.min((window.innerHeight || 600) - panel.offsetHeight, cy - offY));
+          panel.style.left = left + "px";
+          panel.style.top = top + "px";
+          panel.style.right = "auto";
+          panel.style.position = "fixed";
+        }
+        function onUp() {
+          document.removeEventListener("pointermove", onMove);
+          document.removeEventListener("pointerup", onUp);
+          document.removeEventListener("pointercancel", onUp);
+          if (dragTimer) { clearTimeout(dragTimer); dragTimer = null; }
+          dragging = false;
+          dragHandle.style.cursor = "grab";
+        }
+        dragHandle.addEventListener("pointerdown", function (e) {
+          e.stopPropagation();
+          var rect = panel.getBoundingClientRect();
+          startX = e.clientX;
+          startY = e.clientY;
+          offX = e.clientX - rect.left;
+          offY = e.clientY - rect.top;
+          if (dragTimer) clearTimeout(dragTimer);
+          dragTimer = setTimeout(function () {
+            dragTimer = null;
+            dragging = true;
+            dragHandle.style.cursor = "grabbing";
+            if (navigator.vibrate) navigator.vibrate(40);
+            document.addEventListener("pointermove", onMove, { passive: false });
+            document.addEventListener("pointerup", onUp);
+            document.addEventListener("pointercancel", onUp);
+            try { dragHandle.setPointerCapture(e.pointerId); } catch (_) {}
+          }, LONG_MS);
+        });
+        dragHandle.addEventListener("pointermove", function (e) {
+          if (dragTimer && Math.hypot(e.clientX - startX, e.clientY - startY) > 12) {
+            clearTimeout(dragTimer);
+            dragTimer = null;
+          }
+        });
+        dragHandle.addEventListener("pointerup", function () {
+          if (dragTimer) { clearTimeout(dragTimer); dragTimer = null; }
+        });
+      }
+
+      window.closeSectorStockListPopup = function () {
+        var p = document.getElementById("sectorStockListPopup");
+        var b = document.getElementById("sectorStockListPopupBackdrop");
+        if (p) p.remove();
+        if (b) b.remove();
+      };
+
+      /**
+       * セクター行の leaders を一覧（配列の全要素。生成ツールで日次ユニバース分が入る）
+       * @param {string} sectorName
+       * @param {Array<{symbol?:string,name?:string,gain?:number}>} leaders
+       * @param {string|null} anchorYmd  YYYY-MM-DD（ランキング基準日）
+       */
+      window.showSectorStockListPopup = function (sectorName, leaders, anchorYmd) {
+        window.closeSectorStockListPopup();
+        var backdrop = document.createElement("div");
+        backdrop.id = "sectorStockListPopupBackdrop";
+        backdrop.style.cssText =
+          "position:fixed;inset:0;z-index:10015;background:rgba(0,0,0,0.25);";
+        var popup = document.createElement("div");
+        popup.id = "sectorStockListPopup";
+        popup.style.cssText =
+          "position:fixed;z-index:10020;box-sizing:border-box;max-width:min(380px,92vw);" +
+          "overflow:auto;-webkit-overflow-scrolling:touch;" +
+          "background:rgba(22,22,28,0.98);color:#ececf0;border:1px solid rgba(255,255,255,0.14);" +
+          "border-radius:10px;padding:12px 14px;font:12px/1.45 system-ui,sans-serif;" +
+          "box-shadow:0 12px 40px rgba(0,0,0,0.55);";
+        var sp = document.getElementById("sectorPanel");
+        var sectorPanelRect =
+          sp && getComputedStyle(sp).display !== "none" ? sp.getBoundingClientRect() : null;
+        var list = Array.isArray(leaders) ? leaders.slice() : [];
+        list.sort(function (a, b) {
+          return (Number(b.gain) || 0) - (Number(a.gain) || 0);
+        });
+
+        var title = document.createElement("div");
+        title.style.cssText = "font-weight:600;color:#9fe8ff;margin-bottom:4px;";
+        title.textContent =
+          String(sectorName || "—") +
+          " — 業種内銘柄（" +
+          list.length +
+          "件・上昇率順）";
+        var sub = document.createElement("div");
+        sub.style.cssText = "font-size:10px;color:#7a9aac;margin-bottom:10px;";
+        sub.textContent =
+          "本システムに取り込んだ銘柄データのうち、当該業種に属する銘柄をすべて表示しています（東証の公式な全市場一覧ではありません）。行をクリックでチャート表示。";
+        popup.appendChild(title);
+        popup.appendChild(sub);
+
+        if (list.length === 0) {
+          var empty = document.createElement("div");
+          empty.style.cssText = "opacity:0.75;padding:8px 0;";
+          empty.textContent = "銘柄リストがありません";
+          popup.appendChild(empty);
+        } else {
+          list.forEach(function (item) {
+            var sym = item.symbol != null ? String(item.symbol).trim() : "";
+            var nm = item.name != null ? String(item.name) : sym;
+            var g = Number(item.gain);
+            var gc = !Number.isFinite(g)
+              ? "#9aa4b2"
+              : g > 0
+                ? "#ff4444"
+                : g < 0
+                  ? "#4ade80"
+                  : "#9aa4b2";
+            var row = document.createElement("div");
+            row.style.cssText =
+              "display:flex;justify-content:space-between;align-items:center;gap:8px;" +
+              "padding:6px 4px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;border-radius:4px;";
+            row.tabIndex = 0;
+            row.onmouseenter = function () {
+              row.style.background = "rgba(255,255,255,0.06)";
+            };
+            row.onmouseleave = function () {
+              row.style.background = "transparent";
+            };
+            row.onclick = function (e) {
+              e.stopPropagation();
+              if (!sym || typeof window.loadChart !== "function") return;
+              var ymd =
+                anchorYmd != null && String(anchorYmd).trim() !== ""
+                  ? String(anchorYmd).trim().slice(0, 10)
+                  : null;
+              if (ymd) window.loadChart(sym, ymd);
+              else window.loadChart(sym);
+              window.closeSectorStockListPopup();
+            };
+            var leftEl = document.createElement("span");
+            leftEl.style.wordBreak = "break-word";
+            var bCode = document.createElement("b");
+            bCode.textContent = sym;
+            leftEl.appendChild(bCode);
+            leftEl.appendChild(document.createTextNode(" " + nm));
+            var rightEl = document.createElement("span");
+            rightEl.style.color = gc;
+            rightEl.style.whiteSpace = "nowrap";
+            rightEl.textContent = Number.isFinite(g) ? g.toFixed(2) + "%" : "—";
+            row.appendChild(leftEl);
+            row.appendChild(rightEl);
+            popup.appendChild(row);
+          });
+        }
+
+        var closeRow = document.createElement("div");
+        closeRow.style.cssText = "text-align:right;margin-top:10px;";
+        var closeBtn = document.createElement("button");
+        closeBtn.type = "button";
+        closeBtn.textContent = "閉じる";
+        closeBtn.style.cssText =
+          "background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);" +
+          "color:#ececf0;border-radius:6px;padding:4px 12px;cursor:pointer;font:inherit;";
+        closeBtn.onclick = function (e) {
+          e.stopPropagation();
+          window.closeSectorStockListPopup();
+        };
+        closeRow.appendChild(closeBtn);
+        popup.appendChild(closeRow);
+
+        backdrop.onclick = function () {
+          window.closeSectorStockListPopup();
+        };
+        popup.onclick = function (e) {
+          e.stopPropagation();
+        };
+        document.body.appendChild(backdrop);
+        document.body.appendChild(popup);
+
+        (function placeSectorStockPopup() {
+          var margin = 10;
+          var bottomSafe = 64;
+          var vh =
+            typeof window.visualViewport !== "undefined" && window.visualViewport
+              ? window.visualViewport.height
+              : window.innerHeight;
+          var vw =
+            typeof window.visualViewport !== "undefined" && window.visualViewport
+              ? window.visualViewport.width
+              : window.innerWidth;
+          var vTop =
+            typeof window.visualViewport !== "undefined" && window.visualViewport
+              ? window.visualViewport.offsetTop
+              : 0;
+          var maxH = Math.max(120, Math.min(vh * 0.65, vh - margin * 2 - bottomSafe));
+          popup.style.maxHeight = maxH + "px";
+          var w = popup.offsetWidth;
+          var h = popup.offsetHeight;
+          var left;
+          var top;
+          if (sectorPanelRect) {
+            left = Math.max(margin, Math.min(sectorPanelRect.left, vw - w - margin));
+            var belowTop = sectorPanelRect.bottom + 8;
+            var roomBelow = vTop + vh - bottomSafe - (belowTop + h);
+            var aboveTop = sectorPanelRect.top - h - 8;
+            var roomAbove = aboveTop - vTop - margin;
+            if (roomBelow >= 0) {
+              top = belowTop;
+            } else if (roomAbove >= 0) {
+              top = aboveTop;
+            } else {
+              top = Math.max(vTop + margin, vTop + vh - bottomSafe - h);
+            }
+          } else {
+            left = Math.max(margin, vw - w - margin);
+            top = Math.max(vTop + margin, vTop + (vh - h) / 2);
+            if (top + h > vTop + vh - bottomSafe) {
+              top = Math.max(vTop + margin, vTop + vh - bottomSafe - h);
+            }
+          }
+          if (top + h > vTop + vh - bottomSafe) {
+            top = Math.max(vTop + margin, vTop + vh - bottomSafe - h);
+          }
+          if (top < vTop + margin) {
+            top = vTop + margin;
+            popup.style.maxHeight =
+              Math.max(100, vTop + vh - bottomSafe - top - margin) + "px";
+          }
+          popup.style.left = left + "px";
+          popup.style.top = top + "px";
+        })();
+      };
+
+      function loadSectorJson(date) {
+        var dateKey = formatDate(date) || String(date).trim().slice(0, 10);
+        return fetch("generated/sector/" + dateKey + ".json?v=" + Date.now())
+          .then(res => res.json())
+          .then(data => {
+            const arr = Array.isArray(data?.sector33) ? data.sector33 : [];
+            window.SECTOR_DATA = arr;
+            window.__IMA_SECTOR_DISPLAY_DATE__ = formatDate(data?.date) || dateKey || "----";
+            console.log("✅ セクター読込成功", arr);
+          })
+          .catch(e => {
+            console.error("❌ セクター読込失敗", e);
+            window.SECTOR_DATA = [];
+          });
+      }
+
+      function renderSectorPanel() {
+        if (window.SECTOR_RENDERING) return;
+        window.SECTOR_RENDERING = true;
+        try {
+          if (!Array.isArray(window.SECTOR_DATA)) {
+            console.warn("\u26a0\ufe0f SECTOR_DATA\u304c\u914d\u5217\u3058\u3083\u306a\u3044", window.SECTOR_DATA);
+            return;
+          }
+
+          const list = window.SECTOR_DATA;
+          console.log("\uD83D\uDCCA \u30bb\u30af\u30bf\u30fc\u63cf\u753b", list);
+
+          function escS(s) {
+            return String(s)
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;");
+          }
+
+          var ranking = list
+            .slice()
+            .sort(function (a, b) {
+              var ga = a.avg_gain != null ? a.avg_gain : 0;
+              var gb = b.avg_gain != null ? b.avg_gain : 0;
+              return gb - ga;
+            })
+            .map(function (s, i) {
+              return {
+                rank: i + 1,
+                sector: s.sector,
+                ai_score: s.avg_gain != null ? s.avg_gain : "",
+                win_rate: s.count != null ? s.count : "",
+                money_flow: s.money_flow != null ? s.money_flow : "",
+                leaders: Array.isArray(s.leaders) ? s.leaders : [],
+              };
+            });
+
+          let panel = document.getElementById("sectorPanel");
+          if (panel) panel.style.display = "block";
+          if (!panel) {
+            panel = document.createElement("div");
+            panel.id = "sectorPanel";
+            panel.style.position = "fixed";
+            panel.style.right = "10px";
+            panel.style.top = "80px";
+            panel.style.width = "360px";
+            panel.style.maxWidth = "90vw";
+            panel.style.background = "rgba(18,18,22,0.95)";
+            panel.style.color = "#ececf0";
+            panel.style.font = "11px/1.35 system-ui,sans-serif";
+            panel.style.zIndex = "9999";
+            panel.style.overflow = "auto";
+            panel.style.maxHeight = "70vh";
+            panel.style.padding = "10px 12px";
+            panel.style.borderRadius = "8px";
+            panel.style.boxShadow = "0 4px 18px rgba(0,0,0,0.45)";
+            document.body.appendChild(panel);
+          }
+
+          panel.innerHTML = "";
+          panel.style.display = "block";
+          panel.style.width = "360px";
+          panel.style.maxWidth = "min(360px,90vw)";
+
+          var headerWrap = document.createElement("div");
+          headerWrap.id = "sectorPanelListDateHeader";
+          headerWrap.style.cssText =
+            "flex-shrink:0;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:6px;cursor:grab;user-select:none;touch-action:none;";
+          var titleRow = document.createElement("div");
+          titleRow.textContent = "セクター分析";
+          titleRow.style.cssText =
+            "font-weight:600;font-size:12px;color:#9fe8ff;";
+          var acquireRow = document.createElement("div");
+          acquireRow.textContent =
+            "取得日付: " + (window.__IMA_SECTOR_DISPLAY_DATE__ || "----");
+          acquireRow.style.cssText =
+            "font-size:10px;color:#7a9aac;margin-top:4px;";
+          headerWrap.appendChild(titleRow);
+          headerWrap.appendChild(acquireRow);
+          panel.appendChild(headerWrap);
+
+          if (!ranking.length) {
+            var empty = document.createElement("div");
+            empty.style.opacity = "0.6";
+            empty.textContent = "—";
+            panel.appendChild(empty);
+          } else {
+            var tbl = document.createElement("table");
+            tbl.style.cssText = "width:100%;border-collapse:collapse;";
+            tbl.innerHTML =
+              "<thead><tr>" +
+              '<th style="text-align:left;padding:2px 4px;font-weight:600;">rank</th>' +
+              '<th style="text-align:left;padding:2px 4px;font-weight:600;">sector</th>' +
+              '<th style="text-align:right;padding:2px 4px;font-weight:600;">ai_score</th>' +
+              '<th style="text-align:right;padding:2px 4px;font-weight:600;">win_rate</th>' +
+              '<th style="text-align:right;padding:2px 4px;font-weight:600;">money_flow</th>' +
+              "</tr></thead><tbody></tbody>";
+            var tb = tbl.querySelector("tbody");
+            for (var i = 0; i < ranking.length; i++) {
+              var r = ranking[i];
+              var aiNum =
+                r.ai_score !== "" && r.ai_score != null ? Number(r.ai_score) : NaN;
+              var aiColor =
+                !Number.isFinite(aiNum)
+                  ? "#ececf0"
+                  : aiNum > 0
+                    ? "#ff4444"
+                    : aiNum < 0
+                      ? "#4ade80"
+                      : "#9aa4b2";
+              var tr = document.createElement("tr");
+              var tdRank = document.createElement("td");
+              tdRank.style.cssText = "padding:4px 4px;vertical-align:top;";
+              tdRank.textContent = String(r.rank);
+              var tdSec = document.createElement("td");
+              tdSec.style.cssText =
+                "padding:4px 4px;vertical-align:top;word-break:break-word;cursor:pointer;" +
+                "color:#8ecfff;text-decoration:underline;text-underline-offset:2px;";
+              tdSec.title = "\u696d\u7a2e\u5185\u306e\u4e3b\u8981\u9298\u67c4\u3092\u8868\u793a";
+              // let 必須: var だとループが共有し、クリック時は常に最終行の業種になる
+              let secLabel = r.sector != null ? String(r.sector) : "-";
+              tdSec.textContent = secLabel;
+              var anchorYmd = String(window.__IMA_SECTOR_DISPLAY_DATE__ || "").trim();
+              let leadersCopy = Array.isArray(r.leaders) ? r.leaders.slice() : [];
+              tdSec.addEventListener("click", function (ev) {
+                ev.stopPropagation();
+                if (typeof window.showSectorStockListPopup !== "function") return;
+                window.showSectorStockListPopup(secLabel, leadersCopy, anchorYmd || null);
+              });
+              var tdAi = document.createElement("td");
+              tdAi.style.cssText =
+                "padding:4px 4px;text-align:right;white-space:nowrap;color:" + aiColor + ";";
+              tdAi.textContent =
+                r.ai_score !== "" && r.ai_score != null ? String(r.ai_score) : "";
+              var tdWr = document.createElement("td");
+              tdWr.style.cssText = "padding:4px 4px;text-align:right;white-space:nowrap;";
+              tdWr.textContent =
+                r.win_rate !== "" && r.win_rate != null ? String(r.win_rate) : "";
+              var tdMf = document.createElement("td");
+              tdMf.style.cssText = "padding:4px 4px;text-align:right;white-space:nowrap;";
+              tdMf.textContent =
+                r.money_flow != null && r.money_flow !== "" ? String(r.money_flow) : "";
+              tr.appendChild(tdRank);
+              tr.appendChild(tdSec);
+              tr.appendChild(tdAi);
+              tr.appendChild(tdWr);
+              tr.appendChild(tdMf);
+              tb.appendChild(tr);
+            }
+            panel.appendChild(tbl);
+          }
+
+          panel.__simpleSectorDragBound = false;
+          setupSimpleSectorPanelDrag(panel, headerWrap);
+        } finally {
+          window.SECTOR_RENDERING = false;
+        }
+      }
+
       function draw() {
+        if (!window.mainChartCtx) {
+          const canvas = document.querySelector("canvas");
+          if (canvas) {
+            window.mainChartCtx = canvas.getContext("2d");
+          } else {
+            console.error("❌ canvasが見つからない");
+          }
+        }
         // === ADD: __forecastGuide と __aiTradePlan は描画ループ内では変更しない（保持） ===
         setCanvasSize();  // ここでキャンバスサイズを更新
 
@@ -12003,6 +12573,89 @@ function applyFirstLaunchDefaultState() {
         ========================= */
 
         const priceData = window.currentData || window.priceData || data || [];
+
+        if (window.__AI_ENABLED__ && typeof window.runAIEngine === 'function') {
+          try {
+            window.AI = window.runAIEngine(data);
+            if (window.__AI_ENABLED__ && window.AI) {
+              if (typeof window.drawAIOverlay === "function") {
+                // ❌ 引数不足のため無効化
+                // window.drawAIOverlay(window.AI);
+                if (typeof window.__imaPriceToY !== "function") {
+                  window.__imaPriceToY = function (price) {
+                    const min = window.visibleMinPrice || 0;
+                    const max = window.visibleMaxPrice || 1;
+                    const h = window.innerHeight || 300;
+
+                    if (max === min) return h / 2;
+
+                    return h - ((price - min) / (max - min)) * h;
+                  };
+                }
+                window.__chartObj = {
+                  yPrice: window.__imaPriceToY,
+                  priceLeft: 0,
+                  priceRight: window.innerWidth,
+                  start: 0,
+                  gap: 6,
+                  dataLength: data.length,
+                  aiSlicedLength: data.length
+                };
+
+                // ❌ 旧AI描画（不安定）
+                // if (window.mainChartCtx && window.__chartObj) {
+                //   window.drawAIOverlay(window.mainChartCtx, window.__chartObj, window.AI);
+                // } else {
+                //   console.warn("⚠️ ctxまたはchartが無い");
+                // }
+
+                // ❌ 旧AI描画（全て）
+                // if (
+                //   window.mainChartCtx &&
+                //   window.__chartObj &&
+                //   typeof window.__imaPriceToY === "function"
+                // ) {
+                //   console.log("🎯 AI描画実行（安定版）");
+                //   window.drawAIOverlay(
+                //     window.mainChartCtx,
+                //     window.__chartObj,
+                //     window.AI
+                //   );
+                // } else {
+                //   console.warn("⚠️ AI描画スキップ", {
+                //     ctx: !!window.mainChartCtx,
+                //     chart: !!window.__chartObj,
+                //     priceToY: typeof window.__imaPriceToY
+                //   });
+                // }
+
+                // ✅ 正式AI描画（完全版）
+                if (
+                  window.mainChartCtx &&
+                  window.__chartObj &&
+                  typeof window.__imaPriceToY === "function"
+                ) {
+                  window.drawAIOverlay(
+                    window.mainChartCtx,
+                    window.__chartObj,
+                    window.AI
+                  );
+
+                } else {
+                  console.warn("⚠️ AI描画スキップ", {
+                    ctx: !!window.mainChartCtx,
+                    chart: !!window.__chartObj,
+                    priceToY: typeof window.__imaPriceToY
+                  });
+                }
+              } else {
+                console.warn("⚠️ drawAIOverlay が無い");
+              }
+            }
+          } catch (e) {
+            console.error("❌ AI計算エラー", e);
+          }
+        }
 
         if (window.__AI_ENABLED__) {
           window.moneyFlow =
@@ -12125,6 +12778,15 @@ function applyFirstLaunchDefaultState() {
           .slice(start, end)
           .filter(d => d && d.date);
 
+        window.__IMA_VISIBLE_LAST_DATE_RAW = slice.length ? slice[slice.length - 1].date : null;
+        try {
+          const pd = document.getElementById('periodDisplay');
+          if (pd && window.__IMA_VISIBLE_LAST_DATE_RAW != null && window.__IMA_VISIBLE_LAST_DATE_RAW !== '') {
+            const pl = yyyymmddToLabel(window.__IMA_VISIBLE_LAST_DATE_RAW);
+            if (pd.textContent !== pl) pd.textContent = pl;
+          }
+        } catch (_pd) { }
+
         if (window.__AI_ENABLED__) {
           if (window.aiDisplayFlags?.reversalPanel !== false) {
             window.__reversalData =
@@ -12176,6 +12838,23 @@ function applyFirstLaunchDefaultState() {
         if (ST.hoverLocal != null && ST.hoverLocal >= 0 && ST.hoverLocal < slice.length) {
           displayTargetIndex = start + ST.hoverLocal;
         }
+
+        // ランキング基準日・セクター連携用: 全履歴の最終日ではなく「表示右端 or ホバー中の足」
+        try {
+          const focusBar =
+            displayTargetIndex != null &&
+              displayTargetIndex >= 0 &&
+              displayTargetIndex < data.length
+              ? data[displayTargetIndex]
+              : null;
+          const focusDate = focusBar && focusBar.date;
+          if (focusDate != null && focusDate !== "") {
+            window.CURRENT_DATE = formatDate(focusDate);
+            if (typeof window.__syncSectorJsonPanelToChartDate === "function") {
+              window.__syncSectorJsonPanelToChartDate(window.CURRENT_DATE);
+            }
+          }
+        } catch (_rankDate) { }
 
         // スケール
         const highs = slice.map(d => d.high), lows = slice.map(d => d.low);
@@ -12240,7 +12919,6 @@ function applyFirstLaunchDefaultState() {
           if (el && !el.__splitterBound) {
             setupIndicatorSplitter("deviationSplitter", "deviation");
             el.__splitterBound = true;
-            console.log("🔧 deviation splitter rebind after draw");
           }
         }
 
@@ -14735,13 +15413,6 @@ function applyFirstLaunchDefaultState() {
         // 予測ガイドを描画
         if (window.__forecastGuide) {
           drawForecastCloud(ctx, window.__forecastGuide);
-        } else {
-          // デバッグ用（最初の数回のみ）
-          if (!window.__forecastGuideCheckCount) window.__forecastGuideCheckCount = 0;
-          window.__forecastGuideCheckCount++;
-          if (window.__forecastGuideCheckCount <= 3) {
-            console.log("ℹ️ draw()内: __forecastGuide は null です");
-          }
         }
 
         // === ADD: 期待値マイナス帯とトレード計画ライン描画 ===
@@ -21346,11 +22017,13 @@ function applyFirstLaunchDefaultState() {
             }
             // 右側インジケーター表示を更新（最新日固定）
             updateRightIndicators();
+            if (typeof draw === "function") draw();
           } catch (e) {
             console.warn("scrollToLatest 実行中にエラー:", e);
           }
         }, 200);
       }
+      window.scrollToLatest = scrollToLatest;
 
       // ==============================
       // Yahoo ティッカー変換（指数・国内株）
@@ -21441,16 +22114,9 @@ function applyFirstLaunchDefaultState() {
           if (series.length) {
             console.log("✔ Yahoo 取得件数:", series.length);
             console.log("📌 最新日付 =", series[series.length - 1].date);
-            // 即時統合・再描画
-            try {
-              const base = Array.isArray(originalData) && originalData.length
-                ? originalData
-                : (Array.isArray(window.currentHistory) ? window.currentHistory : []);
-              const merged = mergeCandles(base, series);
-              updateChartWithYahoo(symbol, merged);
-            } catch (mergeErr) {
-              console.warn("Yahoo マージ中エラー:", mergeErr);
-            }
+            // マージ・updateChartWithYahoo は呼び出し元（銘柄 change / loadStock）に任せる。
+            // ここで二重に updateChartWithYahoo すると __rankingOpenAnchorDate が先に消費され、
+            // 2回目で scrollToLatest だけが走りランキング基準日ジャンプが上書きされる。
           } else {
             console.warn("⚠ Yahoo データが空です:", yahooSymbol);
           }
@@ -21529,6 +22195,25 @@ function applyFirstLaunchDefaultState() {
         return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
       }
 
+      /** Ranking anchor date (YYYYMMDD): drop candles after that day. */
+      function capCandlesAtRankingAnchor(candles, anchorRaw) {
+        if (!Array.isArray(candles) || !candles.length || anchorRaw == null || String(anchorRaw).trim() === "") {
+          return candles;
+        }
+        const norm =
+          typeof normalizeDateString === "function"
+            ? normalizeDateString
+            : (v) => String(v == null ? "" : v).replace(/\D/g, "").slice(0, 8);
+        const cap = norm(anchorRaw);
+        if (!cap || cap.length < 8) return candles;
+        const filtered = candles.filter((c) => {
+          if (!c || c.date == null) return false;
+          const d = norm(c.date);
+          return d && d.length >= 8 && d <= cap;
+        });
+        return filtered.length ? filtered : candles;
+      }
+
       // ==============================
       // マージ後のデータでチャートを更新
       // ==============================
@@ -21581,7 +22266,17 @@ function applyFirstLaunchDefaultState() {
         currentSymbol = stockCode || currentSymbol;
 
         applyTimeframe({ resetView: false });
-        scrollToLatest();
+        if (window.__rankingOpenAnchorDate) {
+          const anchor = window.__rankingOpenAnchorDate;
+          window.__rankingOpenAnchorDate = null;
+          setTimeout(() => {
+            if (typeof window.jumpToDate === "function") {
+              window.jumpToDate(anchor);
+            }
+          }, 0);
+        } else {
+          scrollToLatest();
+        }
         // 右側インジケーター表示を更新（最新日固定）
         setTimeout(() => {
           updateRightIndicators();
@@ -21917,21 +22612,8 @@ function applyFirstLaunchDefaultState() {
       ============================ */
       async function showLastUpdateDate() {
         try {
-          // daily フォルダを使用する場合
-          const res = await fetch("daily/");
-          const text = await res.text();
-
-          // YYYY-MM-DD.json をすべて拾う
-          const dates = [...text.matchAll(/(\d{4}-\d{2}-\d{2})\.json/g)]
-            .map(m => m[1])
-            .sort();
-
-          if (dates.length === 0) return;
-
-          const latest = dates[dates.length - 1];
-          const el = document.getElementById("lastUpdateLabel");
-          if (el) el.textContent = `🕒 データ更新日: ${latest}`;
-
+          console.log("更新日取得スキップ");
+          return;
         } catch (e) {
           console.warn("更新日取得失敗", e);
         }
@@ -22572,9 +23254,11 @@ function applyFirstLaunchDefaultState() {
       setupIndicatorSplitter("deviationSplitter", "deviation");
     </script>
 
-    </script> <!-- ← メインの巨大 script がここで終わる -->
+    <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+    <script>
+      new VConsole();
+    </script>
 
-    
     <script>
       /* ===============================
          ★ 基準日セット（状態管理ベース）
@@ -22663,17 +23347,36 @@ function applyFirstLaunchDefaultState() {
 
       window.runAIEngineModule = runAIEngine;
       window.drawAIOverlayModule = drawAIOverlay;
+      if (typeof window.runAIEngine !== "function") {
+        window.runAIEngine = runAIEngine;
+      }
+      if (typeof window.drawAIOverlay !== "function") {
+        window.drawAIOverlay = drawAIOverlay;
+      }
 
       console.log("AI modules loaded");
     </script>
 
     <script type="module">
-      import { openRankingPanel, preloadRankingData } from "./ai_ranking/ranking_controller.js";
+      import {
+        openRankingPanel,
+        preloadRankingData,
+        initRankingSystem,
+        refreshRankingPanelBodyIfNeeded
+      } from "./ai_ranking/ranking_controller.js";
 
       window.openRankingPanel = openRankingPanel;
-      window.loadChart = function (code) {
+      window.initRankingSystem = initRankingSystem;
+      window.refreshRankingPanelBodyIfNeeded = refreshRankingPanelBodyIfNeeded;
+      window.loadChart = function (code, rankingAsOfDate) {
         const stockSelect = document.getElementById("stockSelect");
         if (stockSelect) {
+          if (arguments.length >= 2 && rankingAsOfDate != null && String(rankingAsOfDate).trim() !== "") {
+            window.__rankingOpenAnchorDate = String(rankingAsOfDate).trim();
+            window.__pendingJumpDate = null;
+          } else {
+            window.__rankingOpenAnchorDate = null;
+          }
           stockSelect.value = code;
           stockSelect.dispatchEvent(new Event("change"));
         }
@@ -22681,22 +23384,51 @@ function applyFirstLaunchDefaultState() {
 
       window.addEventListener("load", () => {
         if (typeof window.initSectorButton === "function") window.initSectorButton();
-        setTimeout(() => preloadRankingData(), 1500);
+        // setTimeout(() => preloadRankingData(), 1500);
+        // initRankingSystem(); // 自動起動しない（ランキングボタン押下時のみ）
         setTimeout(() => {
           const btn = document.getElementById("rankingBtn");
           if (!btn) {
             console.warn("rankingBtn not found");
             return;
           }
-          btn.onclick = null;
-          btn.onclick = function () {
-            console.log("ランキングクリック");
-            if (typeof window.openRankingPanel === "function") {
-              window.openRankingPanel();
-            } else if (window.AI_SECTOR_FRONT && typeof window.AI_SECTOR_FRONT.renderRanking === "function") {
-              window.AI_SECTOR_FRONT.renderRanking();
+          // btn.onclick = null;
+          // btn.onclick = function () {
+          //   console.log("ランキングクリック");
+          //   if (typeof window.openRankingPanel === "function") {
+          //     window.openRankingPanel();
+          //   } else if (window.AI_SECTOR_FRONT && typeof window.AI_SECTOR_FRONT.renderRanking === "function") {
+          //     window.AI_SECTOR_FRONT.renderRanking();
+          //   }
+          // };
+
+          document.getElementById("rankingBtn")?.addEventListener("click", async () => {
+            if (window.__IMA_DEBUG__) {
+              console.log("\uD83D\uDCCA ランキングボタン押された");
             }
-          };
+
+            try {
+              if (!window.RANKING_INITIALIZED && typeof window.initRankingSystem === "function") {
+                await window.initRankingSystem();
+              }
+
+              let panel = document.getElementById("rankingPanel");
+              if (!panel && typeof window.initRankingSystem === "function") {
+                await window.initRankingSystem();
+                panel = document.getElementById("rankingPanel");
+              }
+              if (!panel) return;
+
+              const isHidden = getComputedStyle(panel).display === "none";
+              if (isHidden && typeof window.refreshRankingPanelBodyIfNeeded === "function") {
+                await window.refreshRankingPanelBodyIfNeeded();
+              }
+              panel.style.display = isHidden ? "block" : "none";
+            } catch (e) {
+              console.error("\u274c \u30e9\u30f3\u30ad\u30f3\u30b0\u521d\u671f\u5316\u5931\u6557", e);
+              window.RANKING_INITIALIZED = false;
+            }
+          });
         }, 50);
       });
     </script>
@@ -22861,15 +23593,95 @@ function applyFirstLaunchDefaultState() {
           Math.min(window.innerWidth, window.innerHeight) < 768
         );
       };
+
+      (function () {
+
+        function setupAICheckboxLink() {
+          const checkbox = document.querySelector('input[data-flag="aiAnalysis"]');
+          if (!checkbox) {
+            console.warn("⚠️ AI分析チェックボックス見つからない");
+            return;
+          }
+
+          console.log("✅ AI分析チェック連動セット完了");
+
+          checkbox.addEventListener("change", async function (e) {
+            const isOn = e.target.checked;
+
+            console.log("🧠 AI分析トグル:", isOn);
+
+            window.__AI_ENABLED__ = isOn;
+
+            if (isOn) {
+              console.log("🚀 AI起動");
+
+              if (typeof window.__runAIWithGuard === "function") {
+                await window.__runAIWithGuard();
+              } else {
+                console.warn("⚠️ __runAIWithGuard が無い");
+              }
+
+            } else {
+              console.log("🛑 AI停止");
+
+              window.AI = null;
+
+              if (typeof window.draw === "function") {
+                window.draw();
+              }
+            }
+          });
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", setupAICheckboxLink);
+        } else {
+          setupAICheckboxLink();
+        }
+
+      })();
     </script>
-    
+
     <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./service-worker.js')
-    .then(() => console.log("✅ SW登録成功"))
-    .catch(err => console.error("❌ SW失敗", err));
-}
-</script>
+      window.SECTOR_DATA = [];
+      (function removeLegacySectorAutoPanel() {
+        var el = document.getElementById("sectorPanel_AUTO");
+        if (el) el.remove();
+      })();
+
+      function getCurrentDateForSector() {
+        var cd = window.CURRENT_DATE;
+        if (cd != null && String(cd).trim() !== "") {
+          var raw = String(cd).trim();
+          var norm =
+            typeof formatDate === "function" ? formatDate(raw) : "";
+          if (norm) return norm;
+          return raw.slice(0, 10);
+        }
+        var candidates = [
+          window.STOCK_DATA,
+          window.currentData,
+          window.priceData
+        ];
+        for (var i = 0; i < candidates.length; i++) {
+          var d = candidates[i];
+          if (!Array.isArray(d) || !d.length) continue;
+          var last = d[d.length - 1];
+          if (!last || last.date == null) continue;
+          return String(last.date).slice(0, 10);
+        }
+        return null;
+      }
+
+      function escSectorHtml_AUTO(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+    </script>
 
 </body>
 

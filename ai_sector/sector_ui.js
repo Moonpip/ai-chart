@@ -101,6 +101,144 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+function normalizeHistoryDateKey(d) {
+  if (d == null || d === "") return null;
+  const raw = String(d).trim().replace(/T.*/, "");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length >= 8) {
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+  }
+  return null;
+}
+
+/** 全銘柄の history 最終足から、最も新しい日付（集計基準日）を返す */
+function getSectorAsOfDateFromAllData(allData) {
+  if (!Array.isArray(allData)) return null;
+  let best = null;
+  for (let i = 0; i < allData.length; i++) {
+    const stock = allData[i];
+    const h = stock?.history;
+    if (!h || h.length < 1) continue;
+    const last = h[h.length - 1];
+    const d = last?.date ?? last?.Date;
+    const key = normalizeHistoryDateKey(d);
+    if (!key) continue;
+    if (!best || key > best) best = key;
+  }
+  return best;
+}
+
+/** 長押し（約450ms）後にパネルをドラッグ移動（ランキングパネルと同様） */
+function setupSectorAnalysisPanelDrag(panel, headerEl) {
+  if (!panel || !headerEl) return;
+
+  let dragTimer = null;
+  const LONG_MS = 450;
+  let startX = 0;
+  let startY = 0;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+  let isDragging = false;
+
+  function onMove(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+    const left = Math.max(0, Math.min(window.innerWidth - panel.offsetWidth, e.clientX - dragOffsetX));
+    const top = Math.max(0, Math.min(window.innerHeight - 60, e.clientY - dragOffsetY));
+    panel.style.left = left + "px";
+    panel.style.top = top + "px";
+    panel.style.right = "auto";
+  }
+
+  function onUp() {
+    document.removeEventListener("pointermove", onMove);
+    document.removeEventListener("pointerup", onUp);
+    document.removeEventListener("pointercancel", onUp);
+    if (isDragging && navigator.vibrate) navigator.vibrate(30);
+    isDragging = false;
+  }
+
+  headerEl.addEventListener("pointerdown", (e) => {
+    const t = e.target;
+    if (t && (t.id === "sectorAnalysisPanelClose" || t.closest?.("#sectorAnalysisPanelClose"))) return;
+    e.stopPropagation();
+    const rect = panel.getBoundingClientRect();
+    startX = e.clientX;
+    startY = e.clientY;
+    if (dragTimer) clearTimeout(dragTimer);
+    dragTimer = setTimeout(() => {
+      dragTimer = null;
+      isDragging = true;
+      dragOffsetX = e.clientX - rect.left;
+      dragOffsetY = e.clientY - rect.top;
+      panel.style.left = rect.left + "px";
+      panel.style.top = rect.top + "px";
+      panel.style.right = "auto";
+      if (navigator.vibrate) navigator.vibrate(50);
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onUp);
+      try {
+        headerEl.setPointerCapture(e.pointerId);
+      } catch (_) {}
+    }, LONG_MS);
+  });
+
+  headerEl.addEventListener("pointermove", (e) => {
+    if (dragTimer && Math.hypot(e.clientX - startX, e.clientY - startY) > 12) {
+      clearTimeout(dragTimer);
+      dragTimer = null;
+    }
+  });
+
+  headerEl.addEventListener("pointerup", () => {
+    if (dragTimer) {
+      clearTimeout(dragTimer);
+      dragTimer = null;
+    }
+  });
+}
+
+function buildSectorPanelHeader(panel, allData) {
+  const asOfDate = getSectorAsOfDateFromAllData(allData);
+
+  const headerWrap = document.createElement("div");
+  headerWrap.className = "sector-analysis-panel-drag-header";
+  headerWrap.style.cssText =
+    "cursor:grab;user-select:none;touch-action:none;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid #2c3b55;";
+
+  const dateEl = document.createElement("div");
+  dateEl.textContent = asOfDate ? `表示基準日: ${asOfDate}` : "表示基準日: —";
+  dateEl.style.cssText =
+    "font-size:10px;color:#7a9aac;margin:0 0 6px 2px;letter-spacing:0.02em;";
+
+  const headRow = document.createElement("div");
+  headRow.style.cssText =
+    "display:flex;justify-content:space-between;align-items:center;gap:8px;";
+
+  const title = document.createElement("h3");
+  title.textContent = "📊 セクター分析";
+  title.style.cssText = "margin:0;font-size:14px;color:#9fe8ff;";
+
+  const closeBtn = document.createElement("button");
+  closeBtn.id = "sectorAnalysisPanelClose";
+  closeBtn.type = "button";
+  closeBtn.textContent = "閉じる";
+  closeBtn.style.cssText =
+    "background:#2c3b55;color:#9fe8ff;border:1px solid #3b4b6a;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;";
+  closeBtn.onclick = () => {
+    panel.style.display = "none";
+  };
+
+  headRow.appendChild(title);
+  headRow.appendChild(closeBtn);
+  headerWrap.appendChild(dateEl);
+  headerWrap.appendChild(headRow);
+
+  return headerWrap;
+}
+
 function getOrCreatePanelShell() {
   let panel = document.getElementById("sectorAnalysisPanel");
   if (!panel) {
@@ -134,23 +272,9 @@ export function initSectorPanel(allData) {
   const panel = getOrCreatePanelShell();
   panel.innerHTML = "";
 
-  const head = document.createElement("div");
-  head.style.cssText =
-    "display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;";
-  const title = document.createElement("h3");
-  title.textContent = "📊 セクター分析";
-  title.style.cssText = "margin:0;font-size:14px;color:#9fe8ff;";
-  const closeBtn = document.createElement("button");
-  closeBtn.type = "button";
-  closeBtn.textContent = "閉じる";
-  closeBtn.style.cssText =
-    "background:#2c3b55;color:#9fe8ff;border:1px solid #3b4b6a;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;";
-  closeBtn.onclick = () => {
-    panel.style.display = "none";
-  };
-  head.appendChild(title);
-  head.appendChild(closeBtn);
-  panel.appendChild(head);
+  const headerWrap = buildSectorPanelHeader(panel, allData);
+  panel.appendChild(headerWrap);
+  setupSectorAnalysisPanelDrag(panel, headerWrap);
 
   if (!Array.isArray(allData) || allData.length === 0) {
     const p = document.createElement("p");
@@ -313,21 +437,15 @@ export async function openSectorAnalysisPanel() {
     console.error("openSectorAnalysisPanel", e);
     const panel = getOrCreatePanelShell();
     panel.innerHTML = "";
+    const headerWrap = buildSectorPanelHeader(panel, null);
+    panel.appendChild(headerWrap);
+    setupSectorAnalysisPanelDrag(panel, headerWrap);
     const p = document.createElement("p");
     p.style.cssText = "color:#f66;font-size:11px;padding:8px;margin:0;";
     p.textContent =
       "セクター分析の読み込みに失敗しました。コンソールを確認するか、HTTPサーバ経由で開いているか確認してください。" +
       (e && e.message ? " (" + String(e.message) + ")" : "");
-    const closeBtn = document.createElement("button");
-    closeBtn.type = "button";
-    closeBtn.textContent = "閉じる";
-    closeBtn.style.cssText =
-      "margin:8px;background:#2c3b55;color:#9fe8ff;border:1px solid #3b4b6a;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;";
-    closeBtn.onclick = () => {
-      panel.style.display = "none";
-    };
     panel.appendChild(p);
-    panel.appendChild(closeBtn);
     panel.style.display = "block";
   } finally {
     if (loadingShown) hideSectorLoadingOverlay();

@@ -13,7 +13,13 @@ import { extendLine } from '../ai/ai_trend.js';
  * @param {{futureZone:object,heatmap:Array,crash:object,similar:Array,lines:object}} AI
  */
 export function drawAIOverlay(ctx, chart, AI) {
+  const ai = AI;
   if (!ctx || !chart || !AI) return;
+  if (!ai || !ai.score) return;
+
+  if (ai.score < 50) {
+    return;
+  }
   try {
     const showZone = (typeof window !== 'undefined' && window.aiDisplayFlags && window.aiDisplayFlags.zone !== false);
     if (showZone) {

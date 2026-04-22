@@ -50,6 +50,25 @@ export function runAIEngine(priceData) {
       patternFuture: null,
       winrateMap: null
     };
+    if (!empty.future) {
+      empty.future = {
+        mid: priceData.slice(-20).map(d => d.close),
+        upper: priceData.slice(-20).map(d => d.close * 1.02),
+        lower: priceData.slice(-20).map(d => d.close * 0.98)
+      };
+    }
+
+    if (!empty.signals) {
+      empty.signals = [];
+    }
+
+    if (!empty.sr) {
+      empty.sr = [];
+    }
+
+    if (!empty.trend) {
+      empty.trend = { direction: "neutral" };
+    }
     console.log('AI', empty);
     return empty;
   }
@@ -108,10 +127,34 @@ export function runAIEngine(priceData) {
 
   console.log('AI', AI);
   cachedAI = AI;
+  if (!AI.future) {
+    AI.future = {
+      mid: priceData.slice(-20).map(d => d.close),
+      upper: priceData.slice(-20).map(d => d.close * 1.02),
+      lower: priceData.slice(-20).map(d => d.close * 0.98)
+    };
+  }
+
+  if (!AI.signals) {
+    AI.signals = [];
+  }
+
+  if (!AI.sr) {
+    AI.sr = [];
+  }
+
+  if (!AI.trend) {
+    AI.trend = { direction: "neutral" };
+  }
   return AI;
 }
 
 // グローバルから呼び出し可能にする（既存コードとの連携用）
 if (typeof window !== 'undefined') {
   window.runAIEngine = runAIEngine;
+}
+
+if (typeof window !== "undefined") {
+  window.runAIEngine = runAIEngine;
+  console.log("✅ runAIEngine をwindowに公開");
 }

@@ -1,19 +1,29 @@
-const CACHE_NAME = "ai-chart-v2"; // ←バージョン変えると強制更新
+const CACHE_NAME = "ai-chart-v3";
 
 const urlsToCache = [
-  "./",
-  "./index.html",
-  "./ima.html",
-  "./manifest.json"
+  "/ai-chart/",
+  "/ai-chart/index.html",
+  "/ai-chart/ima.html",
+  "/ai-chart/manifest.json",
+  "/ai-chart/icon.png"
 ];
 
+// インストール時：キャッシュする
 self.addEventListener("install", (event) => {
   console.log("SW install");
-  self.skipWaiting(); // 即更新
+  self.skipWaiting();
+
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(urlsToCache);
+    })
+  );
 });
 
+// 有効化：古いキャッシュ削除
 self.addEventListener("activate", (event) => {
   console.log("SW activate");
+
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
@@ -25,11 +35,23 @@ self.addEventListener("activate", (event) => {
       )
     )
   );
-  self.clients.claim(); // 即反映
+
+  self.clients.claim();
 });
 
+// fetch：キャッシュ優先 + ネット更新
 self.addEventListener("fetch", (event) => {
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    caches.match(event.request).then((response) => {
+      return (
+        response ||
+        fetch(event.request).then((res) => {
+          return caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, res.clone());
+            return res;
+          });
+        })
+      );
+    })
   );
 });

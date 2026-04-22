@@ -106,15 +106,17 @@ window.AI_SECTOR_FRONT = (function () {
   }
 
   function loadAll() {
-    fetch("/generated/market_full.json")
+    if (window.marketData) {
+      console.log("セクターキャッシュ使用");
+      return;
+    }
+    fetch("./public/generated/market_full.json")
       .then(function (res) {
-        if (!res.ok) {
-          throw new Error("JSON読み込み失敗: " + res.status);
-        }
+        if (!res.ok) return null;
         return res.json();
       })
       .then(function (data) {
-        console.log("market_full 読み込み成功", data);
+        if (!data) return;
         window.marketData = data;
         heatmap = data.sector_heatmap || null;
         details = data.sector_details || null;
@@ -122,7 +124,9 @@ window.AI_SECTOR_FRONT = (function () {
         renderAll(data);
       })
       .catch(function (err) {
-        console.error("読み込みエラー", err);
+        if (typeof window !== "undefined" && window.__IMA_DEBUG__) {
+          console.warn("market_full 読み込み失敗", err);
+        }
       });
   }
 
@@ -131,16 +135,6 @@ window.AI_SECTOR_FRONT = (function () {
       console.error("dataなし");
       return;
     }
-    var sectors = data.sector_heatmap?.sectors || [];
-    console.log("セクター数:", sectors.length);
-    sectors.forEach(function (s) {
-      console.log("セクター:", s.sector, s.score);
-    });
-    var rankingArr = data.ranking?.ranking || data.ranking || [];
-    console.log("ランキング数:", rankingArr.length);
-    rankingArr.slice(0, 10).forEach(function (r) {
-      console.log("ランキング:", r.name, r.return);
-    });
     var panel = document.getElementById("sectorPanel");
     if (panel && panel._sectorMode) {
       var body = document.getElementById("sectorPanelBody");
@@ -174,8 +168,9 @@ window.AI_SECTOR_FRONT = (function () {
         "background:rgba(0,0,0,0.95);color:#fff;padding:12px;z-index:9000;border-radius:10px;" +
         "border:1px solid #2c3b55;box-shadow:0 4px 12px rgba(0,0,0,0.5);";
       document.body.appendChild(panel);
-      setupPanelDrag(panel);
-    }
+       }
+    // ima.html 等で既存 #sectorPanel がある場合も長押しドラッグを1回だけ付与
+    setupPanelDrag(panel);
 
     var mode = initialMode || panel._sectorMode || "sector";
     panel._sectorMode = mode;
@@ -192,6 +187,21 @@ window.AI_SECTOR_FRONT = (function () {
       "<div id=\"sectorPanelBody\" style=\"flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;\"></div>";
 
     panel.innerHTML = html;
+
+    // ① 表示日（market_full.json の data.date。innerHTML のたびに先頭へ差し込む）
+    var prevDateEl = document.getElementById("sectorPanelDateLabel");
+    if (prevDateEl) prevDateEl.remove();
+    var dateLabel = document.createElement("div");
+    dateLabel.id = "sectorPanelDateLabel";
+    dateLabel.style.fontSize = "12px";
+    dateLabel.style.color = "#aaa";
+    dateLabel.style.padding = "4px 8px";
+    dateLabel.style.borderBottom = "1px solid #333";
+    dateLabel.style.background = "#111";
+    dateLabel.style.flexShrink = "0";
+    var md = typeof window !== "undefined" ? window.marketData : null;
+    dateLabel.textContent = "表示日: " + (md && md.date != null && String(md.date) !== "" ? String(md.date) : "----");
+    panel.insertBefore(dateLabel, panel.firstChild);
 
     panel.querySelectorAll(".sectorTab").forEach(function (el) {
       el.onclick = function () {
@@ -337,18 +347,6 @@ window.addEventListener("load", function () {
       };
       sectorBtn.parentNode.replaceChild(s, sectorBtn);
     }
-    var rankingBtn = document.getElementById("rankingBtn");
-    if (rankingBtn) {
-      var r = rankingBtn.cloneNode(true);
-      r.onclick = null;
-      r.onclick = function () {
-        if (typeof window.openRankingPanel === "function") {
-          window.openRankingPanel();
-        } else if (window.AI_SECTOR_FRONT && typeof window.AI_SECTOR_FRONT.renderRanking === "function") {
-          window.AI_SECTOR_FRONT.renderRanking();
-        }
-      };
-      rankingBtn.parentNode.replaceChild(r, rankingBtn);
-    }
+    // rankingBtn は clone しない（ima.html の click リスナーと二重登録・表示トグル競合のため）
   }, 0);
 });
